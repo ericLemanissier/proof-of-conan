@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        shared: [True, False]
+        shared: ["True", "False"]
     continue-on-error: true
     env:
       NOT_ON_C3I: 1
