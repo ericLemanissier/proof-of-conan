@@ -51,12 +51,15 @@ jobs:
               echo "$cpp_std"
               cpp_std=$(echo $cpp_std | tr -d '[:space:]')
               echo "$cpp_std"
-              conan create -s compiler.cppstd=$cpp_std --version ${{ github.event.inputs.version }} --build=missing ${{ github.event.inputs.path }} -o */*:shared=${{ matrix.shared }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
-
-              if [ $? -ne 6 ]; then
+              code=0
+              set +o pipefail
+              conan create -s compiler.cppstd=$cpp_std --version ${{ github.event.inputs.version }} --build=missing ${{ github.event.inputs.path }} -o */*:shared=${{ matrix.shared }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True || code=$?
+              echo $code
+              if [ $code -ne 6 ]; then
                   break
               fi
           done
+          exit "$code"
           
         name: conan create
         shell: bash
