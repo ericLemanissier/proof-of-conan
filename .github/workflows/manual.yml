@@ -31,7 +31,7 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
-      - run: pip3 install conan
+      - run: pip3 install conan yq
 
       - run: conan profile detect --force
         shell: bash
