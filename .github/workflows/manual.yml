@@ -49,6 +49,8 @@ jobs:
           echo $CPP_STDS
           for cpp_std in $CPP_STDS; do
               echo $cpp_std
+              cpp_std=$(echo $cpp_std | tr -d '\n' | tr -d ' ')
+              echo $cpp_std
               conan create -s compiler.cppstd=$cpp_std --version ${{ github.event.inputs.version }} --build=missing ${{ github.event.inputs.path }} -o */*:shared=${{ matrix.shared }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
 
               if [ $? -ne 6 ]; then
