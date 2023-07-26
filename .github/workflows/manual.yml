@@ -45,7 +45,7 @@ jobs:
           COMPILER=$(awk -F "=" '/^compiler=/ {print $2}' $PROFILE_PATH)
           COMPILER_VERSION=$(awk -F "=" '/^compiler.version=/ {print $2}' $PROFILE_PATH)
           echo $PROFILE_PATH $COMPILER $COMPILER_VERSION
-          CPP_STDS=$(curl https://github.com/conan-io/conan-center-index/raw/master/.c3i/config_v2.yml -L | yq --unwrapScalar=True .cppstd.\"$COMPILER\".\"$COMPILER_VERSION\"[])
+          CPP_STDS=$(curl https://github.com/conan-io/conan-center-index/raw/master/.c3i/config_v2.yml -L | yq -r .cppstd.\"$COMPILER\".\"$COMPILER_VERSION\"[])
           echo $CPP_STDS
           for cpp_std in $CPP_STDS; do
               echo $cpp_std
