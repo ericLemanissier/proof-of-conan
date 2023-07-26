@@ -5,12 +5,16 @@ on:
     inputs:
       repository:
         required: true
+        default: 'conan-io/conan-center-index'
       ref:
         required: true
+        default: 'master'
       path:
         required: true
+        default: 'recipes/qt/6.x.x'
       version:
         required: true
+        default: '6.5.1'
 
 jobs:
   _:
@@ -41,7 +45,7 @@ jobs:
           COMPILER=$(awk -F "=" '/^compiler=/ {print $2}' $PROFILE_PATH)
           COMPILER_VERSION=$(awk -F "=" '/^compiler.version=/ {print $2}' $PROFILE_PATH)
           echo $PROFILE_PATH $COMPILER $COMPILER_VERSION
-          CPP_STDS=$(curl https://github.com/conan-io/conan-center-index/raw/master/.c3i/config_v2.yml -L | yq .cppstd.$COMPILER.\"$COMPILER_VERSION\"[])
+          CPP_STDS=$(curl https://github.com/conan-io/conan-center-index/raw/master/.c3i/config_v2.yml -L | yq --unwrapScalar=True .cppstd.\"$COMPILER\".\"$COMPILER_VERSION\"[])
           echo $CPP_STDS
           for cpp_std in $CPP_STDS; do
               echo $cpp_std
