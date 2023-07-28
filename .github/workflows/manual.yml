@@ -39,7 +39,7 @@ jobs:
 
       - run: |
           if [ ${{ runner.os }} = Windows ]; then
-            export CONAN_HOME="${{ github.workspace }}\\.conan2"
+            export CONAN_HOME="${{ runner.temp }}\\.c2"
             echo $CONAN_HOME
           fi
           conan profile detect --force
