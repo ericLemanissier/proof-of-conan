@@ -50,11 +50,8 @@ jobs:
           COMPILER_VERSION=$(awk -F "=" '/^compiler.version=/ {print $2}' $PROFILE_PATH)
           echo "$PROFILE_PATH $COMPILER $COMPILER_VERSION"
           CPP_STDS=$(curl https://github.com/conan-io/conan-center-index/raw/master/.c3i/config_v2.yml -L | yq -r -c .cppstd.\"$COMPILER\".\"$COMPILER_VERSION\"[])
-          echo "$CPP_STDS"
           for cpp_std in $CPP_STDS; do
-              echo "$cpp_std"
               cpp_std=$(echo $cpp_std | tr -d '[:space:]')
-              echo "$cpp_std"
               code=0
               set +o pipefail
               conan create -s compiler.cppstd=$cpp_std --version ${{ github.event.inputs.version }} --build=missing ${{ github.event.inputs.path }} -o */*:shared=${{ matrix.shared }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True || code=$?
