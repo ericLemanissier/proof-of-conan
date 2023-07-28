@@ -62,7 +62,7 @@ jobs:
         
           echo "| os | shared | cppstd | result |" >> $GITHUB_STEP_SUMMARY
           echo "| -- | ------ | ------ | ------ |" >> $GITHUB_STEP_SUMMARY
-          echo "| ${{ matrix.os }} | ${{ matrix.shared }} |" >> $GITHUB_STEP_SUMMARY
+          echo -n "| ${{ matrix.os }} | ${{ matrix.shared }} |" >> $GITHUB_STEP_SUMMARY
           PROFILE_PATH=$(conan profile path default)
           COMPILER=$(awk -F "=" '/^compiler=/ {print $2}' $PROFILE_PATH)
           COMPILER_VERSION=$(awk -F "=" '/^compiler.version=/ {print $2}' $PROFILE_PATH)
@@ -74,9 +74,9 @@ jobs:
               set +o pipefail
               conan create -s compiler.cppstd=$cpp_std --version ${{ github.event.inputs.version }} --build=missing ${{ github.event.inputs.path }} -o */*:shared=${{ matrix.shared }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True || code=$?
               echo $code
+              echo " $cpp_std | $code |" >> $GITHUB_STEP_SUMMARY
               if [ $code -ne 6 ]; then
                   break
               fi
           done
-          echo " $cpp_std | $code |" >> $GITHUB_STEP_SUMMARY
           exit "$code"
