@@ -38,9 +38,15 @@ jobs:
       - run: pip3 install conan yq
 
       - if: ${{ runner.os == 'Windows' }}
-        run: echo "CONAN_HOME=${{ runner.temp }}\\.c2" >> "$GITHUB_ENV"
+        run: |
+          echo "CONAN_HOME=${{ runner.temp }}.c2" >> $GITHUB_ENV
+          cat $GITHUB_ENV
         
-      - run: conan profile detect --force
+      - run: |
+          cat $GITHUB_ENV
+          echo $CONAN_HOME
+          echo ${{ env.CONAN_HOME }}
+          conan profile detect --force
         shell: bash
           
       - name: List cppstds
@@ -51,7 +57,8 @@ jobs:
           COMPILER_VERSION=$(awk -F "=" '/^compiler.version=/ {print $2}' $PROFILE_PATH)
           echo "$PROFILE_PATH $COMPILER $COMPILER_VERSION"
           CPP_STDS=$(curl https://github.com/conan-io/conan-center-index/raw/master/.c3i/config_v2.yml -L | yq -r -c .cppstd.\"$COMPILER\".\"$COMPILER_VERSION\"[])
-          echo "CPP_STDS=$CPP_STDS" >> "$GITHUB_ENV"
+          echo $CPP_STDS
+          echo "CPP_STDS=$CPP_STDS" >> $GITHUB_ENV
           
       - name: conan create
         shell: bash
