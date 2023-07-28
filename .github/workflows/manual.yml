@@ -17,6 +17,18 @@ on:
         default: '6.5.1'
 
 jobs:
+  summary:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Building Conan Package" >> $GITHUB_STEP_SUMMARY
+          echo "- repo: ${{ github.event.inputs.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "- gitref: ${{ github.event.inputs.ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "- path: ${{ github.event.inputs.path }}" >> $GITHUB_STEP_SUMMARY
+          echo "- version: ${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "| os | shared | cppstd | result |" >> $GITHUB_STEP_SUMMARY
+          echo "| -- | ------ | ------ | ------ |" >> $GITHUB_STEP_SUMMARY
+    
   _:
     name: "${{ github.event.inputs.repository }} ${{ github.event.inputs.ref }} ${{ github.event.inputs.path }} ${{ github.event.inputs.version }}"
     runs-on: ${{ matrix.os }}
@@ -37,16 +49,12 @@ jobs:
           python-version: "3.8"
       - run: pip3 install conan yq
 
-      - if: ${{ runner.os == 'Windows' }}
-        run: |
-          echo "CONAN_HOME=${{ runner.temp }}.c2" >> $GITHUB_ENV
-          cat $GITHUB_ENV
+      - name: set conan home
+        if: ${{ runner.os == 'Windows' }}
+        shell: bash
+        run: echo "CONAN_HOME=${{ runner.temp }}.c2" >> $GITHUB_ENV
         
-      - run: |
-          cat $GITHUB_ENV
-          echo $CONAN_HOME
-          echo ${{ env.CONAN_HOME }}
-          conan profile detect --force
+      - run: conan profile detect --force
         shell: bash
           
       - name: List cppstds
@@ -74,5 +82,6 @@ jobs:
               if [ $code -ne 6 ]; then
                   break
               fi
+              echo "| ${{ matrix.os }} | ${{ matrix.shared }} | $cpp_std | $code |" >> $GITHUB_STEP_SUMMARY
           done
           exit "$code"
