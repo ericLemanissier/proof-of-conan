@@ -41,6 +41,10 @@ jobs:
         shell: bash
 
       - run: |
+          if [ ${{ runner.os }} = Windows ]; then
+            export CONAN_HOME="\\\\?\\$(conan config home)"
+            echo $CONAN_HOME
+          fi
           PROFILE_PATH=$(conan profile path default)
           COMPILER=$(awk -F "=" '/^compiler=/ {print $2}' $PROFILE_PATH)
           COMPILER_VERSION=$(awk -F "=" '/^compiler.version=/ {print $2}' $PROFILE_PATH)
