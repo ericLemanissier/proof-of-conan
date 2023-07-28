@@ -26,12 +26,8 @@ jobs:
           echo "- gitref: ${{ github.event.inputs.ref }}" >> $GITHUB_STEP_SUMMARY
           echo "- path: ${{ github.event.inputs.path }}" >> $GITHUB_STEP_SUMMARY
           echo "- version: ${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| os | shared | cppstd | result |" >> $GITHUB_STEP_SUMMARY
-          echo "| -- | ------ | ------ | ------ |" >> $GITHUB_STEP_SUMMARY
     
   _:
-    name: "${{ github.event.inputs.repository }} ${{ github.event.inputs.ref }} ${{ github.event.inputs.path }} ${{ github.event.inputs.version }}"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -53,7 +49,7 @@ jobs:
       - name: set conan home
         if: ${{ runner.os == 'Windows' }}
         shell: bash
-        run: echo "CONAN_HOME=${{ runner.temp }}.c2" >> $GITHUB_ENV
+        run: echo "CONAN_HOME=${{ runner.temp }}\\.c2" >> $GITHUB_ENV
         
       - run: conan profile detect --force
         shell: bash
@@ -63,6 +59,10 @@ jobs:
         env:
           CONAN_SYSREQUIRES_MODE: enabled
         run: |
+        
+          echo "| os | shared | cppstd | result |" >> $GITHUB_STEP_SUMMARY
+          echo "| -- | ------ | ------ | ------ |" >> $GITHUB_STEP_SUMMARY
+          echo "| ${{ matrix.os }} | ${{ matrix.shared }} |" >> $GITHUB_STEP_SUMMARY
           PROFILE_PATH=$(conan profile path default)
           COMPILER=$(awk -F "=" '/^compiler=/ {print $2}' $PROFILE_PATH)
           COMPILER_VERSION=$(awk -F "=" '/^compiler.version=/ {print $2}' $PROFILE_PATH)
@@ -77,6 +77,6 @@ jobs:
               if [ $code -ne 6 ]; then
                   break
               fi
-              echo "| ${{ matrix.os }} | ${{ matrix.shared }} | $cpp_std | $code |" >> $GITHUB_STEP_SUMMARY
           done
+          echo " $cpp_std | $code |" >> $GITHUB_STEP_SUMMARY
           exit "$code"
