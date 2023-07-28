@@ -42,7 +42,7 @@ jobs:
 
       - run: |
           if [ ${{ runner.os }} = Windows ]; then
-            export CONAN_HOME="\\\\?\\$(conan config home)"
+            export CONAN_HOME="${{ github.workspace }}\\.conan2"
             echo $CONAN_HOME
           fi
           PROFILE_PATH=$(conan profile path default)
