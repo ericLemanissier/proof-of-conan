@@ -18,6 +18,7 @@ on:
 
 jobs:
   _:
+    name: "${{ github.event.inputs.repository }} ${{ github.event.inputs.ref }} ${{ github.event.inputs.path }} ${{ github.event.inputs.version }}"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -27,8 +28,7 @@ jobs:
     env:
       NOT_ON_C3I: 1
     steps:    
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
           repository: ${{ github.event.inputs.repository }}
           ref: ${{ github.event.inputs.ref }}
@@ -37,14 +37,12 @@ jobs:
           python-version: "3.8"
       - run: pip3 install conan yq
 
-      - run: conan profile detect --force
-        shell: bash
-
       - run: |
           if [ ${{ runner.os }} = Windows ]; then
             export CONAN_HOME="${{ github.workspace }}\\.conan2"
             echo $CONAN_HOME
           fi
+          conan profile detect --force
           PROFILE_PATH=$(conan profile path default)
           COMPILER=$(awk -F "=" '/^compiler=/ {print $2}' $PROFILE_PATH)
           COMPILER_VERSION=$(awk -F "=" '/^compiler.version=/ {print $2}' $PROFILE_PATH)
