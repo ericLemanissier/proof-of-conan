@@ -26,6 +26,7 @@ jobs:
           echo "- gitref: ${{ github.event.inputs.ref }}" >> $GITHUB_STEP_SUMMARY
           echo "- path: ${{ github.event.inputs.path }}" >> $GITHUB_STEP_SUMMARY
           echo "- version: ${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "| os | shared | cppstd | result |" >> $GITHUB_STEP_SUMMARY
           echo "| -- | ------ | ------ | ------ |" >> $GITHUB_STEP_SUMMARY
     
@@ -57,22 +58,16 @@ jobs:
       - run: conan profile detect --force
         shell: bash
           
-      - name: List cppstds
+      - name: conan create
         shell: bash
+        env:
+          CONAN_SYSREQUIRES_MODE: enabled
         run: |
           PROFILE_PATH=$(conan profile path default)
           COMPILER=$(awk -F "=" '/^compiler=/ {print $2}' $PROFILE_PATH)
           COMPILER_VERSION=$(awk -F "=" '/^compiler.version=/ {print $2}' $PROFILE_PATH)
           echo "$PROFILE_PATH $COMPILER $COMPILER_VERSION"
           CPP_STDS=$(curl https://github.com/conan-io/conan-center-index/raw/master/.c3i/config_v2.yml -L | yq -r -c .cppstd.\"$COMPILER\".\"$COMPILER_VERSION\"[])
-          echo $CPP_STDS
-          echo "CPP_STDS=$CPP_STDS" >> $GITHUB_ENV
-          
-      - name: conan create
-        shell: bash
-        env:
-          CONAN_SYSREQUIRES_MODE: enabled
-        run: |
           for cpp_std in $CPP_STDS; do
               cpp_std=$(echo $cpp_std | tr -d '[:space:]')
               code=0
