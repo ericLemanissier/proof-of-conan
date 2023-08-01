@@ -16,6 +16,9 @@ on:
         required: true
         default: '6.5.1'
 
+permissions:
+  contents: read
+
 jobs:
   summary:
     runs-on: ubuntu-latest
@@ -36,6 +39,8 @@ jobs:
     continue-on-error: true
     env:
       NOT_ON_C3I: 1
+      PKG_VERSION: ${{ github.event.inputs.version }}
+      PKG_PATH: ${{ github.event.inputs.path }}
     steps:    
       - uses: actions/checkout@v3
         with:
@@ -71,7 +76,7 @@ jobs:
               cpp_std=$(echo $cpp_std | tr -d '[:space:]')
               code=0
               set +o pipefail
-              conan create -s compiler.cppstd=$cpp_std --version ${{ github.event.inputs.version }} --build=missing ${{ github.event.inputs.path }} -o */*:shared=${{ matrix.shared }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True || code=$?
+              conan create -s compiler.cppstd=$cpp_std --version $PKG_VERSION --build=missing $PKG_PATH -o */*:shared=${{ matrix.shared }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True || code=$?
               echo $code
               case $code in
                 0)
