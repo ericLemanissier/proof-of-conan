@@ -16,10 +16,19 @@ on:
         required: true
         description: 'JSON of all your targets'
 
+permissions:
+  contents: read
+
 jobs:
   checkout:
     runs-on: ubuntu-latest
     steps:
+      - run: |
+          echo "Building Conan Package" >> $GITHUB_STEP_SUMMARY
+          echo "- repo: ${{ github.event.inputs.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "- gitref: ${{ github.event.inputs.ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "- path: ${{ github.event.inputs.path }}" >> $GITHUB_STEP_SUMMARY
+
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -39,18 +48,9 @@ jobs:
     continue-on-error: true
     env:
       NOT_ON_C3I: 1
+      CONAN_CMD: ${{ matrix.conancmd }}
+      CONTAINER: ${{ matrix.container }}
     steps:
-      # Yes I understand this check doesn't mean much when I'm anyway going
-      # to run random python-scripts, but at least those need an account.
-      - run: |
-          # https://unix.stackexchange.com/a/498744
-          case "${{ matrix.conancmd }}" in
-            ("" | *[!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890./@\-\ =+\'_:]*)
-              echo "NOT ALLOWED" && exit 1;;
-            (*)
-              echo "test=${{ matrix.conancmd }}" >> $GITHUB_OUTPUT;;
-          esac
-        shell: bash
       - uses: actions/download-artifact@v3
         with:
           name: repo
@@ -71,6 +71,11 @@ jobs:
           cache-dependency-path: 'proof-of-conan/requirements.txt'
       - run: pip3 install -r proof-of-conan/requirements.txt
 
+      - name: set conan home
+        if: ${{ runner.os == 'Windows' }}
+        shell: bash
+        run: echo "CONAN_HOME=${{ runner.temp }}\\.c2" >> $GITHUB_ENV
+
       - run: conan profile detect --force
         shell: bash
         if: ${{ matrix.container == '' }}
@@ -85,12 +90,13 @@ jobs:
             source activate.sh
           fi
           which g++
-          conan ${{ matrix.conancmd }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
+          conan $CONAN_CMD -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
         name: conan ${{ matrix.conancmd }}
         shell: bash
         if: ${{ matrix.container == '' }}
         env:
           CONAN_SYSREQUIRES_MODE: enabled
+
         # Must be root? How else to use /build, and can't use ~ since we don't know the user
-      - run: docker run --rm -i -e CONAN_SYSREQUIRES_MODE=enabled -v "$PWD:/build" -u root -w /build "${{ matrix.container }}" conan ${{ matrix.conancmd }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
+      - run: docker run --rm -i -e CONAN_SYSREQUIRES_MODE=enabled -v "$PWD:/build" -u root -w /build "$CONTAINER" conan $CONAN_CMD -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
         if: ${{ matrix.container != '' }}
