@@ -1,0 +1,35 @@
+name: Scan CCI PRs
+
+on:
+  schedule:
+    - cron:  '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  actions: write
+
+jobs:
+  scan:
+    env:
+      REPOSITORY: conan-io/conan-center-index
+      GH_TOKEN: ${{ github.token }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: scan
+      run: |
+        SINCE=$(date --utc +"%Y-%m-%dT%H:%M:%SZ"  -d '4 hour ago')
+        echo since=$SINCE
+        COMMENTS=$(gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" /repos/$REPOSITORY/issues/comments?since=$SINCE --paginate)
+        echo comments=$COMMENTS
+        echo $COMMENTS | jq '.[] | select( .body | contains("@ericLemanissierBot build")) | select( .reactions.eyes == 0 ) | {id,issue_url} | join(" ")' -r | while read line
+        do
+          echo line=$line
+          stringarray=($line)
+          ID=${stringarray[0]}
+          PR=$(echo ${stringarray[1]} | cut -d/ -f 8)
+          echo "id $ID pr $PR"
+          gh workflow run -R ${{ github.repository }} build-pr.yml -f pr=$PR -f repository=$REPOSITORY
+          GH_TOKEN=${{ secrets.GH_TOKEN }} gh api --method POST -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" /repos/$REPOSITORY/issues/comments/$ID/reactions -f content='eyes' 
+        done
+        

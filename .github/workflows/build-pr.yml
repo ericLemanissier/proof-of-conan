@@ -1,0 +1,154 @@
+name: Build PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        required: true
+        default: 'conan-io/conan-center-index'
+      pr:
+        required: true
+
+jobs:
+  find_modified_package:
+    name: Find modified package
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      versions: ${{ steps.generate-matrix.outputs.versions }}
+      recipe_folder: ${{ steps.find-modified-package.outputs.recipe_folder }}
+      package_name: ${{ steps.find-modified-package.outputs.package_name }}
+    steps:
+    - name: find modified package
+      id: find-modified-package
+      run: |
+        gh pr view -R ${{ github.event.inputs.repository }} ${{ github.event.inputs.pr }} --json files --jq '.files[].path' | while read file
+        do
+            if [[ $file != recipes/* ]]
+            then
+                echo file not in recipes: $file
+                continue
+            fi
+            IFS='/' read -ra my_array <<< "$file"
+            if [ "${#my_array[@]}" -lt 4 ]
+            then
+                echo file too short: $file
+                continue
+            fi
+            package_name=${my_array[1]}
+            recipe_folder=${my_array[2]}
+            echo package_name=$package_name
+            echo recipe_folder=$recipe_folder
+            echo "package_name=$package_name" >> "$GITHUB_OUTPUT"
+            echo "recipe_folder=$recipe_folder" >> "$GITHUB_OUTPUT"
+            break
+        done
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.8"
+    - run: pip3 install conan yq
+    - uses: actions/checkout@v3
+      with:
+        repository: ${{ github.event.inputs.repository }}
+    - name: find modified versions
+      id: generate-matrix
+      run: |
+        gh pr checkout -R ${{ github.event.inputs.repository }} ${{ github.event.inputs.pr }}
+        version_list=$(yq -c '[.versions | to_entries[] | select(.value.folder=="${{ steps.find-modified-package.outputs.recipe_folder }}").key]' recipes/${{ steps.find-modified-package.outputs.package_name }}/config.yml)
+        echo version_list=$version_list
+        echo "versions=$version_list" >> "$GITHUB_OUTPUT"
+    
+        
+    - run: |
+        echo "Building Pull request" >> $GITHUB_STEP_SUMMARY
+        echo "- repo: ${{ github.event.inputs.repository }}" >> $GITHUB_STEP_SUMMARY
+        echo "- PR: #${{ github.event.inputs.PR }}" >> $GITHUB_STEP_SUMMARY
+        echo "- package: ${{ steps.find-modified-package.outputs.package_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- recipe folder: ${{ steps.find-modified-package.outputs.recipe_folder }}" >> $GITHUB_STEP_SUMMARY
+        echo "- versions: ${{ steps.generate-matrix.outputs.versions }}" >> $GITHUB_STEP_SUMMARY
+
+
+  
+  _:
+    runs-on: ${{ matrix.os }}
+    needs:
+      - find_modified_package
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-11]
+        shared: ["True", "False"]
+        version: ${{ fromJSON(needs.find_modified_package.outputs.versions) }}
+    continue-on-error: true
+    env:
+      NOT_ON_C3I: 1
+      PKG_VERSION: ${{ matrix.version }}
+      PKG_PATH: recipes/${{ needs.find_modified_package.outputs.package_name }}/${{ needs.find_modified_package.outputs.recipe_folder }}
+      GH_TOKEN: ${{ github.token }}
+    steps:    
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.inputs.repository }}
+          sparse-checkout: recipes/${{ needs.find_modified_package.outputs.package_name }}/${{ needs.find_modified_package.outputs.recipe_folder }}
+      - run: gh pr checkout -R ${{ github.event.inputs.repository }} ${{ github.event.inputs.pr }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - run: pip3 install conan yq
+
+      - name: set conan home
+        if: ${{ runner.os == 'Windows' }}
+        shell: bash
+        run: echo "CONAN_HOME=${{ runner.temp }}\\.c2" >> $GITHUB_ENV
+        
+      - run: conan profile detect --force
+        shell: bash
+          
+      - name: conan create
+        shell: bash
+        env:
+          CONAN_SYSREQUIRES_MODE: enabled
+        run: |
+        
+          echo "| os | shared | cppstd | result |" >> $GITHUB_STEP_SUMMARY
+          echo "| -- | ------ | ------ | ------ |" >> $GITHUB_STEP_SUMMARY
+          PROFILE_PATH=$(conan profile path default)
+          COMPILER=$(awk -F "=" '/^compiler=/ {print $2}' $PROFILE_PATH)
+          COMPILER_VERSION=$(awk -F "=" '/^compiler.version=/ {print $2}' $PROFILE_PATH)
+          echo "$PROFILE_PATH $COMPILER $COMPILER_VERSION"
+          CPP_STDS=$(curl https://github.com/conan-io/conan-center-index/raw/master/.c3i/config_v2.yml -L | yq -r -c .cppstd.\"$COMPILER\".\"$COMPILER_VERSION\"[])
+          for cpp_std in $CPP_STDS; do
+              cpp_std=$(echo $cpp_std | tr -d '[:space:]')
+              code=0
+              set +o pipefail
+              conan create -s compiler.cppstd=$cpp_std --version $PKG_VERSION --build=missing $PKG_PATH -o */*:shared=${{ matrix.shared }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True || code=$?
+              echo $code
+              case $code in
+                0)
+                  ICON=":white_check_mark:"
+                  ;;
+                6)
+                  ICON=":arrow_right_hook:"
+                  ;;
+                1)
+                  ICON=":x:"
+                  ;;
+                *)
+                  ICON=":interrobang: $code"
+                  ;;
+              esac
+              echo "| ${{ matrix.os }} | ${{ matrix.shared }} | $cpp_std | $ICON |" >> $GITHUB_STEP_SUMMARY
+              if [ $code -ne 6 ]; then
+                  break
+              fi
+          done
+          exit "$code"
+
+  Post_Result:
+    name: Post results
+    needs: [_]
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    steps:
+      - run: GH_TOKEN=${{ secrets.GH_TOKEN }} gh issue comment -R ${{ github.event.inputs.repository }} ${{ github.event.inputs.pr }} -b "The build is now finished. You can take a look at the results [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
