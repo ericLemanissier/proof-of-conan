@@ -95,6 +95,7 @@ jobs:
           repository: ${{ github.event.inputs.repository }}
           sparse-checkout: recipes/${{ needs.find_modified_package.outputs.package_name }}/${{ needs.find_modified_package.outputs.recipe_folder }}
       - run: gh pr checkout $PR
+        shell: bash
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
