@@ -9,14 +9,15 @@ on:
       pr:
         required: true
 
+env:
+  GH_TOKEN: ${{ github.token }}
+  REPOSITORY: ${{ github.event.inputs.repository }}
+  PR: ${{ github.event.inputs.pr }}
+
 jobs:
   find_modified_package:
     name: Find modified package
     runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ github.token }}
-      REPOSITORY: ${{ github.event.inputs.repository }}
-      PR: ${{ github.event.inputs.pr }}
     outputs:
       versions: ${{ steps.generate-matrix.outputs.versions }}
       recipe_folder: ${{ steps.find-modified-package.outputs.recipe_folder }}
