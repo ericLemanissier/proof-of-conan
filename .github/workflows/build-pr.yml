@@ -78,6 +78,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs:
       - find_modified_package
+    name: ${{ needs.find_modified_package.outputs.package_name }}
     strategy:
       fail-fast: false
       matrix:
