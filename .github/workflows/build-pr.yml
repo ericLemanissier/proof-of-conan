@@ -155,6 +155,6 @@ jobs:
     name: Post results
     needs: [_]
     runs-on: ubuntu-latest
-    if: ${{ always() }}
+    if: ${{ !cancelled() }}
     steps:
       - run: GH_TOKEN=${{ secrets.GH_TOKEN }} gh issue comment -R $REPOSITORY $PR -b "The build is now finished. You can take a look at the results [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
