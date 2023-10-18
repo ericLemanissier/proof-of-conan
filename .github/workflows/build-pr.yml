@@ -55,7 +55,7 @@ jobs:
       with:
         repository: ${{ github.event.inputs.repository }}
         sparse-checkout: recipes/${{ steps.find-modified-package.outputs.package_name }}/config.yml
-        ref: pull/${{ github.event.inputs.pr }}/head
+        ref: refs/pull/${{ github.event.inputs.pr }}/head
     - name: find modified versions
       id: generate-matrix
       run: |
@@ -96,7 +96,7 @@ jobs:
         with:
           repository: ${{ github.event.inputs.repository }}
           sparse-checkout: recipes/${{ needs.find_modified_package.outputs.package_name }}/${{ needs.find_modified_package.outputs.recipe_folder }}
-          ref: pull/${{ github.event.inputs.pr }}/head
+          ref: refs/pull/${{ github.event.inputs.pr }}/head
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
