@@ -55,10 +55,10 @@ jobs:
       with:
         repository: ${{ github.event.inputs.repository }}
         sparse-checkout: recipes/${{ steps.find-modified-package.outputs.package_name }}/config.yml
+        ref: pull/${{ github.event.inputs.pr }}/head
     - name: find modified versions
       id: generate-matrix
       run: |
-        gh pr checkout $PR
         version_list=$(yq -c '[.versions | to_entries[] | select(.value.folder=="${{ steps.find-modified-package.outputs.recipe_folder }}").key]' recipes/${{ steps.find-modified-package.outputs.package_name }}/config.yml)
         echo version_list=$version_list
         echo "versions=$version_list" >> "$GITHUB_OUTPUT"
@@ -96,8 +96,7 @@ jobs:
         with:
           repository: ${{ github.event.inputs.repository }}
           sparse-checkout: recipes/${{ needs.find_modified_package.outputs.package_name }}/${{ needs.find_modified_package.outputs.recipe_folder }}
-      - run: gh pr checkout $PR
-        shell: bash
+          ref: pull/${{ github.event.inputs.pr }}/head
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
