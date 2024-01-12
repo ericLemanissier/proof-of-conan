@@ -13,6 +13,8 @@ env:
   GH_TOKEN: ${{ github.token }}
   REPOSITORY: ${{ github.event.inputs.repository }}
   PR: ${{ github.event.inputs.pr }}
+  CLICOLOR_FORCE: 1
+  FORCE_COLOR: 1
 
 jobs:
   find_modified_package:
