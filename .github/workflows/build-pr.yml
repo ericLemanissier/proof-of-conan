@@ -125,9 +125,11 @@ jobs:
           CPP_STDS=$(curl https://github.com/conan-io/conan-center-index/raw/master/.c3i/config_v2.yml -L | yq -r -c .cppstd.\"$COMPILER\".\"$COMPILER_VERSION\"[])
           for cpp_std in $CPP_STDS; do
               cpp_std=$(echo $cpp_std | tr -d '[:space:]')
-              code=0
-              set +o pipefail
-              conan create -s compiler.cppstd=$cpp_std --version ${{ matrix.version }} recipes/${{ needs.find_modified_package.outputs.package_name }}/${{ needs.find_modified_package.outputs.recipe_folder }} -o */*:shared=${{ matrix.shared }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True || code=$?
+              conan_command="-s compiler.cppstd=$cpp_std --version ${{ matrix.version }} recipes/${{ needs.find_modified_package.outputs.package_name }}/${{ needs.find_modified_package.outputs.recipe_folder }} -o */*:shared=${{ matrix.shared }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True"
+              set +e
+              conan create $conan_command 2> >(tee conan_output >&2)
+              code=${PIPESTATUS[0]}
+              set -e
               echo $code
               case $code in
                 0)
@@ -143,6 +145,9 @@ jobs:
                   ICON=":interrobang: $code"
                   ;;
               esac
+              if grep -Fq "conan graph explain" conan_output; then
+                conan graph explain $conan_command
+              fi
               echo "| ${{ matrix.os }} | ${{ matrix.shared }} | $cpp_std | ${{ matrix.version }} | $ICON |" >> $GITHUB_STEP_SUMMARY
               if [ $code -ne 6 ]; then
                   exit "$code"
