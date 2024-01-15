@@ -127,7 +127,7 @@ jobs:
           CPP_STDS=$(curl https://github.com/conan-io/conan-center-index/raw/master/.c3i/config_v2.yml -L | yq -r -c .cppstd.\"$COMPILER\".\"$COMPILER_VERSION\"[])
           for cpp_std in $CPP_STDS; do
               cpp_std=$(echo $cpp_std | tr -d '[:space:]')
-              conan_command="-s compiler.cppstd=$cpp_std --version ${{ matrix.version }} recipes/${{ needs.find_modified_package.outputs.package_name }}/${{ needs.find_modified_package.outputs.recipe_folder }} -o */*:shared=${{ matrix.shared }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True"
+              conan_command="-s:a compiler.cppstd=$cpp_std --version ${{ matrix.version }} recipes/${{ needs.find_modified_package.outputs.package_name }}/${{ needs.find_modified_package.outputs.recipe_folder }} -o */*:shared=${{ matrix.shared }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True"
               set +e
               conan create $conan_command 2> >(tee conan_output >&2)
               code=${PIPESTATUS[0]}
