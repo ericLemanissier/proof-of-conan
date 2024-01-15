@@ -53,7 +53,7 @@ jobs:
       with:
         python-version: "3.8"
     - run: pip3 install conan yq
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         repository: ${{ github.event.inputs.repository }}
         sparse-checkout: recipes/${{ steps.find-modified-package.outputs.package_name }}/config.yml
@@ -94,7 +94,7 @@ jobs:
       REPOSITORY: ${{ github.event.inputs.repository }}
       PR: ${{ github.event.inputs.pr }}
     steps:    
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: ${{ github.event.inputs.repository }}
           sparse-checkout: recipes/${{ needs.find_modified_package.outputs.package_name }}/${{ needs.find_modified_package.outputs.recipe_folder }}
