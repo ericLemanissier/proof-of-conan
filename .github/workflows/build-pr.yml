@@ -113,6 +113,7 @@ jobs:
         shell: bash
           
       - name: conan create
+        id: conan_create
         shell: bash
         env:
           CONAN_SYSREQUIRES_MODE: enabled
@@ -150,12 +151,22 @@ jobs:
               if grep -Fq "conan graph explain" conan_output; then
                 conan graph explain $conan_command
               fi
+              if grep -Fq "conan graph info" conan_output; then
+                conan graph info $conan_command --format=html >graph.html
+              fi
               echo "| ${{ matrix.os }} | ${{ matrix.shared }} | $cpp_std | ${{ matrix.version }} | $ICON |" >> $GITHUB_STEP_SUMMARY
               if [ $code -ne 6 ]; then
                   exit "$code"
               fi
           done
           exit 0
+  
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() && steps.conan_create.conclusion == 'failure' }}
+        with:
+          name: graph_${{ needs.find_modified_package.outputs.package_name }}_${{ matrix.version }}_${{ matrix.shared }}_${{ matrix.os }}
+          path: graph.html
+          if-no-files-found: ignore
 
   Post_Result:
     name: Post results
