@@ -84,7 +84,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-11]
+        os: [ubuntu-latest, windows-latest, macos-14]
         shared: ["True", "False"]
         version: ${{ fromJSON(needs.find_modified_package.outputs.versions) }}
     continue-on-error: true
