@@ -101,7 +101,7 @@ jobs:
           ref: refs/pull/${{ github.event.inputs.pr }}/merge
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: "3.11"
       - run: pip3 install conan yq
 
       - name: set conan home
