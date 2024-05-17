@@ -105,9 +105,13 @@ jobs:
       - run: pip3 install conan yq
 
       - name: set conan home
-        if: ${{ runner.os == 'Windows' }}
+        if: runner.os == 'Windows'
         shell: bash
         run: echo "CONAN_HOME=${{ runner.temp }}\\.c2" >> $GITHUB_ENV
+
+      - name: remove clang
+        if: runner.os == 'Linux'
+        run: sudo apt remove "clang-*"
         
       - run: conan profile detect --force
         shell: bash
